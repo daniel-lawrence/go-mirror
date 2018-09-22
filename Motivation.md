@@ -40,3 +40,41 @@ func SaveObject(obj interface{}) {
 ```
 
 That's better! In the future, other methods can be added as well, such as `StructToStringMap`, which could return a map of all struct fields that are strings. This would completely remove the need for type assertions in many cases.
+
+### Example: Using a specifically typed function to implement a generic interface
+
+Sometimes, you want to define an interface or function type without specific type information, but you don't want to require implementers of that interface to be generic. You define a type such as:
+
+```go
+type EndpointHandler func(event interface{}) (interface{}, error)
+```
+
+This represents some handler function that takes a context and event data, and returns some value and an error. An EndpointHandler function would be suitable for using as a handler for an API endpoint; the function takes endpoint input, and returns some value and an optional error.
+
+The problem is, when writing an endpoint handler, it's easier to use concrete types:
+
+```go
+type handlerEvent struct {
+	ID string
+	Name string
+}
+
+type handlerOutput struct {
+	Email string
+}
+
+func MyHandler(event handlerEvent) (handlerOutput, error) {
+	// event.ID and event.Name can be accessed directly
+	// the output is a clearly defined type
+}
+```
+
+...but now, `MyHandler` cannot be used where an `EndpointHandler` is expected, because the function signature is different. To remedy this, the `go-mirror` package (TODO, not implemented yet) exports the function `FunctionWrap`, which takes two functions as input. The first should be a function with the desired signature, and the second is the function to wrap.
+
+```go
+targetSignature := func(event interface{}) (interface{}, error) { return nil, nil }
+wrappedFunc := mirror.FunctionWrap(targetSignature, MyHandler)
+// wrappedFunc can be used as an EndpointHandler
+```
+
+This allows defining functions with concrete inputs and outputs, while still being able to implement a generic interface.
